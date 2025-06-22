@@ -1,0 +1,1 @@
+usar "gcc -o main main.c -lrt" para compilar o código
