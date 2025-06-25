@@ -12,7 +12,7 @@
 #include <stdbool.h>
 
 #define BTREE_ORDER 3
-#define MIDDLE_INDEX (BTREE_ORDER-1)/2;
+#define MIDDLE_INDEX (BTREE_ORDER-1)/2
 
 typedef enum { FILE_TYPE, DIRECTORY_TYPE } NodeType;
 

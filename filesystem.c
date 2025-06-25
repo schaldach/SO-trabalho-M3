@@ -2,7 +2,10 @@
 // https://webdocs.cs.ualberta.ca/~holte/T26/ins-b-tree.html
 BTree* btree_create() {
     BTree* tree = malloc(sizeof(BTree));
-    tree->root = NULL;
+    tree->root = malloc(sizeof(BTreeNode));
+    tree->root->leaf = true;
+    tree->root->num_keys = 0;
+    tree->root->parent = NULL;
     return tree;
 }
 
@@ -48,7 +51,7 @@ void change_directory(Directory** current, const char* path) {
     printf("Mudando para o diretório: %s (simulado)\n", path);
 }
 
-void list_directory_contents(Directory* dir, level=0) {
+void list_directory_contents(Directory* dir) {
     printf("Conteúdo do diretório:\n");
 }
 
@@ -71,29 +74,36 @@ int get_node_index(BTreeNode* bnode, char* name){
         }
     }
 
+    printf("index in get_node_index: %d\n", index);
     return index;
 }
 
-BTreeNode* create_bnode(TreeNode** nodes, int leaf, BTreeNode** children){
+BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeNode* parent){
     BTreeNode* new_node = malloc(sizeof(BTreeNode));
     new_node->num_keys = (BTREE_ORDER-1)/2;
     new_node->leaf = leaf;
+    new_node->parent = parent;
 
     for(int i=0; i<new_node->num_keys+1; i++){
-        if(i != new_node->num_keys) new_node->keys[i] = nodes[i];
+        if(i != new_node->num_keys) new_node->keys[i] = keys[i];
         if(new_node->leaf) new_node->children[i] = children[i];
     }
 
     return new_node;
 }
 
-NodeOverflow* insert_in_node(BtreeNode* bnode, TreeNode* node, int index, BTreeNode* child){
-    bnode->num_keys++;
-    if(index == BTREE_ORDER-1) return node;
-    // nesse caso o node seria o overflow, e não precisamos mais mexer no array
-    
-    NodeOverflow* overflow = new(malloc(sizeof(NodeOverflow)));
+NodeOverflow* insert_in_bnode(BTreeNode* bnode, TreeNode* node, int index, BTreeNode* child){
+    NodeOverflow* overflow = malloc(sizeof(NodeOverflow));
     overflow->valid = false;
+    
+    // nesse caso o node seria o overflow, e não precisamos mais mexer no array
+    if(index == BTREE_ORDER-1){
+        overflow->valid = true;
+        overflow->key = node;
+        if(!bnode->leaf) overflow->child = child;
+        bnode->num_keys++;
+        return overflow;
+    }
 
     // mover os elementos para frente
     int end_keys = bnode->num_keys;
@@ -101,9 +111,9 @@ NodeOverflow* insert_in_node(BtreeNode* bnode, TreeNode* node, int index, BTreeN
     if(end_keys>=BTREE_ORDER-1){
         // o último nodo não é movido, mas será o overflow
         end_keys = end_keys-1;
-        if(bnode->leaf) overflow->child = bnode->children[end_keys+1];
+        if(!bnode->leaf) overflow->child = bnode->children[end_keys+1];
         overflow->key = bnode->keys[end_keys];
-        overflow->true = false;
+        overflow->valid = true;
     }
 
     for(int y=end_keys; y>index; y--){
@@ -113,26 +123,28 @@ NodeOverflow* insert_in_node(BtreeNode* bnode, TreeNode* node, int index, BTreeN
 
     bnode->keys[index] = node;
     bnode->children[index+1] = child;
+    bnode->num_keys++;
     return overflow;
 }
 
 void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     // remover e salvar o nodo do meio
-    TreeNode* middle_node = bnode->children[MIDDLE_INDEX];
-    bnode->children[MIDDLE_INDEX] = NULL;
+    TreeNode* middle_node = bnode->keys[MIDDLE_INDEX];
+    bnode->keys[MIDDLE_INDEX] = NULL;
 
     // salvar nodos que estão à direita
-    TreeNode** right_keys = malloc(sizeof(TreeNode*)*MIDDLE_INDEX);
-    BTreeNode** right_children = malloc(sizeof(BTreeNode*)*MIDDLE_INDEX+1);
-
+    TreeNode** right_keys = malloc(sizeof(TreeNode*)* MIDDLE_INDEX);
+    BTreeNode** right_children = malloc(sizeof(BTreeNode*)*(MIDDLE_INDEX+1));
 
     for(int i=MIDDLE_INDEX + 1; i<bnode->num_keys; i++){
-        right_keys[i-(MIDDLE_INDEX + 1)] = bnode->keys[i];
-        bnode->keys[i] = NULL;
+        if(i!=bnode->num_keys-1){
+            right_keys[i-(MIDDLE_INDEX + 1)] = bnode->keys[i];
+            bnode->keys[i] = NULL;
+        }
 
         if(!bnode->leaf){
-            right_children[i-(MIDDLE_INDEX + 1)] = bnode->children[i+1];
-            bnode->children[i+1] = NULL;
+            right_children[i-(MIDDLE_INDEX + 1)] = bnode->children[i];
+            bnode->children[i] = NULL;
         }
     }
     if(overflow->valid){
@@ -144,17 +156,18 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
 
     // definir nodo parente
     BTreeNode* parent = bnode->parent;
-    if(bnode->parent == NULL){
+    if(parent == NULL){
         parent = malloc(sizeof(BTreeNode));
         parent->leaf = 0;
         parent->children[0] = bnode;
         parent->num_keys = 0;
+        bnode->parent = parent;
     }
     
     int middle_node_index = get_node_index(parent, middle_node->name);
-    BTreeNode* new_node = create_bnode(right_keys, bnode->leaf, right_children);
+    BTreeNode* new_node = create_bnode(right_keys, bnode->leaf, right_children, parent);
 
-    NodeOverflow* parent_overflow = insert_in_node(parent, middle_node, MIDDLE_INDEX, new_node);
+    NodeOverflow* parent_overflow = insert_in_bnode(parent, middle_node, middle_node_index, new_node);
 
     if(parent->num_keys >= BTREE_ORDER){
         split_btree_node(parent, parent_overflow);
@@ -167,7 +180,7 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
     int node_index = get_node_index(bnode, node->name);
 
     if(bnode->leaf){
-        NodeOverflow* overflow = insert_in_node(bnode, node, index, NULL);
+        NodeOverflow* overflow = insert_in_bnode(bnode, node, node_index, NULL);
 
         if(bnode->num_keys >= BTREE_ORDER){
             split_btree_node(bnode, overflow);
@@ -175,7 +188,7 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
         }
     }
     else{
-        btree_insert(bnode->children[index], node);
+        btree_insert(bnode->children[node_index], node);
     }
 }
 
@@ -185,12 +198,12 @@ void btree_delete(BTree* tree, const char* name) {
 
 void btree_traverse(BTreeNode* node, int level) {
     for(int i=0;i<node->num_keys+1; i++){
+        if(!node->leaf) btree_traverse(node->children[i], level+1);
         if(i != node->num_keys){
-            for(int y=0;y<level;y++){
+            for(int y=0;y<level+1;y++){
                 printf("-");
             }
             printf("%s\n", node->keys[i]->name);
         }
-        if(!node->leaf) btree_traverse(node->children[i], level+1);
     }
 }
