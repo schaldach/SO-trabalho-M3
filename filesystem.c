@@ -86,7 +86,10 @@ BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeN
 
     for(int i=0; i<new_node->num_keys+1; i++){
         if(i != new_node->num_keys) new_node->keys[i] = keys[i];
-        if(!new_node->leaf) new_node->children[i] = children[i];
+        if(!new_node->leaf){
+            new_node->children[i] = children[i];
+            new_node->children[i]->parent = new_node;
+        }
     }
 
     return new_node;
