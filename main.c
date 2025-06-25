@@ -51,5 +51,6 @@ int main(){
         // switch(commandCode){
 
         // }
+        Directory* root = get_root_directory();
     }
 }
