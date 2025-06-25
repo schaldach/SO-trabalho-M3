@@ -80,13 +80,13 @@ int get_node_index(BTreeNode* bnode, char* name){
 
 BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeNode* parent){
     BTreeNode* new_node = malloc(sizeof(BTreeNode));
-    new_node->num_keys = (BTREE_ORDER-1)/2;
+    new_node->num_keys = MIDDLE_INDEX;
     new_node->leaf = leaf;
     new_node->parent = parent;
 
     for(int i=0; i<new_node->num_keys+1; i++){
         if(i != new_node->num_keys) new_node->keys[i] = keys[i];
-        if(new_node->leaf) new_node->children[i] = children[i];
+        if(!new_node->leaf) new_node->children[i] = children[i];
     }
 
     return new_node;
@@ -133,7 +133,7 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     bnode->keys[MIDDLE_INDEX] = NULL;
 
     // salvar nodos que estão à direita
-    TreeNode** right_keys = malloc(sizeof(TreeNode*)* MIDDLE_INDEX);
+    TreeNode** right_keys = malloc(sizeof(TreeNode*)*(MIDDLE_INDEX));
     BTreeNode** right_children = malloc(sizeof(BTreeNode*)*(MIDDLE_INDEX+1));
 
     for(int i=MIDDLE_INDEX + 1; i<bnode->num_keys; i++){
@@ -153,19 +153,24 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
             right_children[MIDDLE_INDEX] = overflow->child;
         }
     }
+    bnode->num_keys = MIDDLE_INDEX;
 
     // definir nodo parente
     BTreeNode* parent = bnode->parent;
     if(parent == NULL){
         parent = malloc(sizeof(BTreeNode));
-        parent->leaf = 0;
+        parent->leaf = false;
         parent->children[0] = bnode;
         parent->num_keys = 0;
+        parent->parent = NULL;
         bnode->parent = parent;
     }
     
     int middle_node_index = get_node_index(parent, middle_node->name);
     BTreeNode* new_node = create_bnode(right_keys, bnode->leaf, right_children, parent);
+
+    free(right_children);
+    free(right_keys);
 
     NodeOverflow* parent_overflow = insert_in_bnode(parent, middle_node, middle_node_index, new_node);
 
@@ -198,7 +203,7 @@ void btree_delete(BTree* tree, const char* name) {
 
 void btree_traverse(BTreeNode* node, int level) {
     for(int i=0;i<node->num_keys+1; i++){
-        if(!node->leaf) btree_traverse(node->children[i], level+1);
+        if(!node->leaf) btree_traverse(node->children[i], level*2+1);
         if(i != node->num_keys){
             for(int y=0;y<level+1;y++){
                 printf("-");
