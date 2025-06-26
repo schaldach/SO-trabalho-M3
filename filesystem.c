@@ -44,23 +44,24 @@ void delete_directory(BTree* tree, const char* name) {
 Directory* get_root_directory() {
     Directory* root = malloc(sizeof(Directory));
     root->tree = btree_create();
+    root->parent = NULL;
     return root;
 }
 
-void change_directory(Directory** current, const char* path) {
-    printf("Mudando para o diretório: %s (simulado)\n", path);
-}
-
-void list_directory_contents(Directory* dir) {
-    printf("Conteúdo do diretório:\n");
-}
-
-TreeNode* btree_search(BTree* tree, const char* name) {
-    printf("Buscando: %s (simulado)\n", name);
+BTreeNode* btree_search(BTreeNode* bnode, const char* name) {
+    for(int i=0; i<bnode->num_keys+1; i++){
+        if(i!=bnode->num_keys){
+            if(strcmp(name, bnode->keys[i]->name) > 0) continue;
+            else if (strcmp(name, bnode->keys[i]->name) == 0) return bnode; 
+            else if (!bnode->leaf && strcmp(name, bnode->keys[i]->name) < 0) return btree_search(bnode->children[i], name);
+        }
+        else if(!bnode->leaf) return btree_search(bnode->children[i], name);
+    }
     return NULL;
 }
 
 int get_node_index(BTreeNode* bnode, char* name){
+    if(bnode == NULL) return 0;
     // último elemento
     int index = bnode->num_keys;
     
@@ -68,19 +69,57 @@ int get_node_index(BTreeNode* bnode, char* name){
     for(int i=0; i<bnode->num_keys; i++){
         TreeNode* key = bnode->keys[i];
 
-        if(strcmp(name, key->name) < 0){
+        if(strcmp(name, key->name) <= 0){
             index = i;
             break;
         }
     }
 
-    printf("index in get_node_index: %d\n", index);
+    // printf("index in get_node_index: %d\n", index);
     return index;
+}
+
+TreeNode* change_directory(Directory* current, char* path) {
+    if(strcmp(path, "..") == 0) return current->parent;
+
+    BTreeNode* new_directory_node = btree_search(current->tree->root, path);
+    int index = get_node_index(new_directory_node, path);
+
+    if(new_directory_node != NULL && new_directory_node->keys[index]->type == DIRECTORY_TYPE){
+        return new_directory_node->keys[index];
+    }
+    else{
+        printf("Directory not found\n");
+        return NULL;
+    }
+}
+
+void btree_traverse(BTreeNode* node, int level, bool recursive) {
+    for(int i=0;i<node->num_keys+1; i++){
+        if(!node->leaf) btree_traverse(node->children[i], level, recursive);
+        if(i != node->num_keys){
+            for(int y=0;y<level*2+1;y++){
+                printf("-");
+            }
+            printf("%s", node->keys[i]->name);
+            if(node->keys[i]->type == DIRECTORY_TYPE) printf(" <DIR>");
+            printf("\n");
+
+            if(node->keys[i]->type == DIRECTORY_TYPE && recursive){
+                btree_traverse(node->keys[i]->data.directory->tree->root, level+1, recursive);
+            }
+        }
+    }
+}
+
+void list_directory_contents(Directory* dir) {
+    btree_traverse(dir->tree->root, 0, false);
 }
 
 BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeNode* parent){
     BTreeNode* new_node = malloc(sizeof(BTreeNode));
-    new_node->num_keys = MIDDLE_INDEX;
+
+    new_node->num_keys = RIGHT_NODE_SIZE;
     new_node->leaf = leaf;
     new_node->parent = parent;
 
@@ -136,8 +175,8 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     bnode->keys[MIDDLE_INDEX] = NULL;
 
     // salvar nodos que estão à direita
-    TreeNode** right_keys = malloc(sizeof(TreeNode*)*(MIDDLE_INDEX));
-    BTreeNode** right_children = malloc(sizeof(BTreeNode*)*(MIDDLE_INDEX+1));
+    TreeNode** right_keys = malloc(sizeof(TreeNode*)*(RIGHT_NODE_SIZE));
+    BTreeNode** right_children = malloc(sizeof(BTreeNode*)*(RIGHT_NODE_SIZE+1));
 
     for(int i=MIDDLE_INDEX + 1; i<bnode->num_keys; i++){
         if(i!=bnode->num_keys-1){
@@ -151,12 +190,12 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
         }
     }
     if(overflow->valid){
-        right_keys[MIDDLE_INDEX-1] = overflow->key;
+        right_keys[RIGHT_NODE_SIZE-1] = overflow->key;
         if(!bnode->leaf){
-            right_children[MIDDLE_INDEX] = overflow->child;
+            right_children[RIGHT_NODE_SIZE] = overflow->child;
         }
     }
-    bnode->num_keys = MIDDLE_INDEX;
+    bnode->num_keys = LEFT_NODE_SIZE;
 
     // definir nodo parente
     BTreeNode* parent = bnode->parent;
@@ -183,7 +222,7 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
 }
 
 void btree_insert(BTreeNode* bnode, TreeNode* node) {
-    printf("Inserindo: %s (simulado)\n", node->name);
+    // printf("Inserindo: %s\n", node->name);
 
     int node_index = get_node_index(bnode, node->name);
 
@@ -200,18 +239,33 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
     }
 }
 
-void btree_delete(BTree* tree, const char* name) {
-    printf("Removendo: %s (simulado)\n", name);
-}
+// void btree_delete(BTree* tree, const char* name) {
+//     printf("Removendo: %s\n", name);
 
-void btree_traverse(BTreeNode* node, int level) {
-    for(int i=0;i<node->num_keys+1; i++){
-        if(!node->leaf) btree_traverse(node->children[i], level*2+1);
-        if(i != node->num_keys){
-            for(int y=0;y<level+1;y++){
-                printf("-");
-            }
-            printf("%s\n", node->keys[i]->name);
-        }
-    }
-}
+//     BTreeNode* target_bnode = btree_search(tree->root, name);
+//     int index = get_node_index(target_bnode, name);
+
+//     if(target_bnode == NULL) printf("Nome não se encontra no diretório\n");
+//     else if(target_bnode->leaf){
+//         // Caso 1
+
+//         // excluindo a célula
+//         free(target_bnode->children[index]);
+//         target_bnode->num_keys = target_bnode->num_keys - 1;
+
+//         if(target_bnode->num_keys < MIDDLE_INDEX){
+//             // pegando emprestado da esquerda
+//             if()
+
+//             // pegando emprestado da direita
+//             if()
+
+//             // merge entre nodes
+
+//         }
+//     }
+//     else{
+//         if()
+//         TreeNode*
+//     }
+// }
