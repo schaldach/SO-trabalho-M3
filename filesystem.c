@@ -96,7 +96,7 @@ TreeNode* change_directory(Directory* current, char* path) {
 
 void btree_traverse(BTreeNode* node, int level, bool recursive) {
     for(int i=0;i<node->num_keys+1; i++){
-        if(!node->leaf) btree_traverse(node->children[i], level, recursive);
+        if(!node->leaf) btree_traverse(node->children[i], level+1, recursive);
         if(i != node->num_keys){
             for(int y=0;y<level*2+1;y++){
                 printf("-");
@@ -124,7 +124,9 @@ BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeN
     new_node->parent = parent;
 
     for(int i=0; i<new_node->num_keys+1; i++){
-        if(i != new_node->num_keys) new_node->keys[i] = keys[i];
+        if(i != new_node->num_keys){
+            new_node->keys[i] = keys[i];
+        }
         if(!new_node->leaf){
             new_node->children[i] = children[i];
             new_node->children[i]->parent = new_node;
@@ -191,10 +193,9 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     }
     if(overflow->valid){
         right_keys[RIGHT_NODE_SIZE-1] = overflow->key;
-        if(!bnode->leaf){
-            right_children[RIGHT_NODE_SIZE] = overflow->child;
-        }
+        if(!bnode->leaf) right_children[RIGHT_NODE_SIZE] = overflow->child;
     }
+    free(overflow);
     bnode->num_keys = LEFT_NODE_SIZE;
 
     // definir nodo parente
