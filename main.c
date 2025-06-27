@@ -96,11 +96,12 @@ int main(){
         if(strcmp(command, "mkdir") == 0) commandCode = 3;
         if(strcmp(command, "rm") == 0) commandCode = 4;
         if(strcmp(command, "rmdir") == 0) commandCode = 5;
+        if(strcmp(command, "ls-r") == 0) commandCode = 6;
 
         switch(commandCode){
             // ls
             case 0:
-                list_directory_contents(current_directory);
+                list_directory_contents(current_directory, false);
             break;
 
             // cd
@@ -128,10 +129,19 @@ int main(){
                 }
             break;
 
+            // rm
             case 4:
+                delete_txt_file(current_directory->tree, argument);
             break;
 
+            // rmdir
             case 5:
+                delete_directory(current_directory->tree, argument);
+            break;
+
+            // ls-r (recursive)
+            case 6:
+                list_directory_contents(current_directory, true);
             break;
         }
         printf("\n");

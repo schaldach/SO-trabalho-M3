@@ -33,35 +33,6 @@ TreeNode* create_directory(const char* name) {
     return node;
 }
 
-void delete_txt_file(BTree* tree, const char* name) {
-    printf("deletando arquivo %s\n", name);
-
-    BTreeNode* target_file_node = btree_search(tree->root, name);
-    int index = get_node_index(target_file_node, name);
-
-    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
-        btree_delete(tree->root, name);
-    }
-}
-
-void delete_directory(BTree* tree, const char* name) {
-    printf("deletando diretório %s\n", name);
-
-    BTreeNode* target_directory_node = btree_search(tree->root, name);
-    int index = get_node_index(target_directory_node, name);
-
-    if(target_directory_node != NULL && target_directory_node->keys[index]->type == DIRECTORY_TYPE){
-        btree_delete(tree->root, name);
-    }
-}
-
-Directory* get_root_directory() {
-    Directory* root = malloc(sizeof(Directory));
-    root->tree = btree_create();
-    root->parent = NULL;
-    return root;
-}
-
 BTreeNode* btree_search(BTreeNode* bnode, const char* name) {
     for(int i=0; i<bnode->num_keys+1; i++){
         if(i!=bnode->num_keys){
@@ -93,9 +64,17 @@ int get_node_index(BTreeNode* bnode, char* name){
     return index;
 }
 
+Directory* get_root_directory() {
+    Directory* root = malloc(sizeof(Directory));
+    root->tree = btree_create();
+    root->parent = NULL;
+    return root;
+}
+
 bool node_in_bnode(BTreeNode* bnode, char* name){
     int index = get_node_index(bnode, name);
-    return (bnode!=NULL && strcmp(bnode->keys[index], name) == 0);
+    if (bnode!=NULL && index<bnode->num_keys && strcmp(bnode->keys[index]->name, name) == 0) return true;
+    else return false;
 }
 
 TreeNode* change_directory(Directory* current, char* path) {
@@ -115,10 +94,10 @@ TreeNode* change_directory(Directory* current, char* path) {
 
 void btree_traverse(BTreeNode* node, int level, bool recursive) {
     for(int i=0;i<node->num_keys+1; i++){
+        // pode ser level+1 pra visualizar cada btree ou level para 
+        // visualizar só o sistema de pastas no geral
         if(!node->leaf) btree_traverse(node->children[i], level+1, recursive);
         if(i != node->num_keys){
-            // pode ser level*2+1 pra visualizar cada btree ou level para 
-            // visualizar só o sistema de pastas no geral
             for(int y=0;y<level*2+1;y++){
                 printf("-");
             }
@@ -133,8 +112,8 @@ void btree_traverse(BTreeNode* node, int level, bool recursive) {
     }
 }
 
-void list_directory_contents(Directory* dir) {
-    btree_traverse(dir->tree->root, 0, false);
+void list_directory_contents(Directory* dir, bool recursive) {
+    btree_traverse(dir->tree->root, 0, recursive);
 }
 
 BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeNode* parent){
@@ -173,7 +152,7 @@ NodeOverflow* insert_in_bnode(BTreeNode* bnode, TreeNode* node, int index, BTree
     // mover os elementos para frente
     int end_keys = bnode->num_keys;
 
-    if(end_keys>=BTREE_ORDER-1){
+    if(end_keys == BTREE_ORDER-1){
         // o último nodo não é movido, mas será o overflow
         end_keys = end_keys-1;
         if(!bnode->leaf) overflow->child = bnode->children[end_keys+1];
@@ -183,11 +162,11 @@ NodeOverflow* insert_in_bnode(BTreeNode* bnode, TreeNode* node, int index, BTree
 
     for(int y=end_keys; y>index; y--){
         bnode->keys[y] = bnode->keys[y-1];
-        bnode->children[y+1] = bnode->children[y];
+        if(!bnode->leaf) bnode->children[y+1] = bnode->children[y];
     }
 
     bnode->keys[index] = node;
-    bnode->children[index+1] = child;
+    if(!bnode->leaf) bnode->children[index+1] = child;
     bnode->num_keys++;
     return overflow;
 }
@@ -231,15 +210,16 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     }
     
     int middle_node_index = get_node_index(parent, middle_node->name);
-    BTreeNode* new_node = create_bnode(right_keys, bnode->leaf, right_children, parent);
+    BTreeNode* new_bnode = create_bnode(right_keys, bnode->leaf, right_children, parent);
 
     free(right_children);
     free(right_keys);
 
-    NodeOverflow* parent_overflow = insert_in_bnode(parent, middle_node, middle_node_index, new_node);
+    NodeOverflow* parent_overflow = insert_in_bnode(parent, middle_node, middle_node_index, new_bnode);
 
     if(parent->num_keys >= BTREE_ORDER){
         split_btree_node(parent, parent_overflow);
+        free(parent_overflow);
     }
 }
 
@@ -253,6 +233,7 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
 
         if(bnode->num_keys >= BTREE_ORDER){
             split_btree_node(bnode, overflow);
+            free(overflow);
             bnode->num_keys = MIDDLE_INDEX;
         }
     }
@@ -261,18 +242,42 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
     }
 }
 
-TreeNode* remove_from_leaf_bnode(BTreeNode* bnode, bool start){
-    int index = start ? 0 : bnode->num_keys-1;
-    TreeNode* removed_node = bnode->keys[index];
+void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_node){
+    left_node->keys[left_node->num_keys] = middle_node;
+    left_node->num_keys++;
+    int pre_merge_size = left_node->num_keys;
+    int merge_size = left_node->num_keys*2-1;
+    for(int i=left_node->num_keys; i<=merge_size; i++){
+        if(!right_node->leaf) left_node->children[i] = right_node->children[i-pre_merge_size];
+        if(i!=left_node->num_keys){
+            left_node->keys[i] = right_node->keys[i-pre_merge_size-1];
+            left_node->num_keys++;
+        }
+    }
+}
+
+void remove_from_bnode_end(BTreeNode* bnode, bool start){
+
+}
+
+void remove_from_bnode(BTreeNode* bnode, int index){
+    // apagando key e child 
+    free(bnode->keys[index]);
     bnode->keys[index] = NULL;
 
-    // trazer para começo
-    for(int i=index; i<bnode->num_keys-1; i++){
-        bnode->keys[i] = bnode->keys[i+1];
+    if(!bnode->leaf){
+        free(bnode->children[index+1]);
+        bnode->children[index+1] = NULL;
     }
-    bnode->num_keys = bnode->num_keys - 1;
 
-    return removed_node;
+    // movendo para trás
+    for(int i=index; i<bnode->num_keys; i++){
+        bnode->keys[i] = bnode->keys[i+1];
+        if(i!=index && !bnode->leaf) bnode->children[i] = bnode->children[i+1];
+    }
+    bnode->keys[bnode->num_keys-1] = NULL;
+    if(!bnode->leaf) bnode->children[bnode->num_keys] = NULL;
+    bnode->num_keys = bnode->num_keys-1;
 }
 
 // https://enos.itcollege.ee/~japoia/algorithms/GT/Introduction_to_algorithms-3rd%20Edition.pdf
@@ -282,30 +287,93 @@ void btree_delete(BTreeNode* bnode, char* name) {
 
     int index = get_node_index(bnode, name);
     bool is_current_bnode = node_in_bnode(bnode, name);
-    if(!is_current_bnode && bnode->leaf) printf("Nome não se encontra no diretório\n");
 
-    if(!bnode->leaf){
-        // if(bnode->num_keys <= MIDDLE_INDEX && bnode->parent != NULL){
-        //     // passou pelo node e o número de chaves é pequeno demais
-        // }
-        btree_delete(bnode->children[index], name);
+    printf("index in bnode: %d, is in bnode:%d\n", index);
+    if(!is_current_bnode && bnode->leaf){
+        printf("Nome não se encontra na árvore\n");
+        return;
     }
-    else{
-        if(bnode->num_keys > MIDDLE_INDEX){
-            // Caso 1
-            free(bnode->children[index]);
-            bnode->children[index] = NULL;
-            bnode->num_keys = bnode->num_keys - 1;
+
+    // Caso 1
+    if(bnode->leaf){
+        remove_from_bnode(bnode, index);
+        return;
+    }
+    // Caso 2
+    if(is_current_bnode){
+        // Caso 2a
+        BTreeNode* left_child = bnode->children[index];
+        if(left_child->num_keys > MIDDLE_INDEX){
+            TreeNode* predecessor = left_child->keys[left_child->num_keys-1];
+            memcpy(&bnode->keys[index], &predecessor, sizeof(TreeNode));
+            btree_delete(left_child, predecessor->name);
             return;
         }
-        // else{
-        //     // pegando emprestado da esquerda
-        //     // if()
 
-        //     // pegando emprestado da direita
-        //     // if()
+        // Caso 2b
+        BTreeNode* right_child = bnode->children[index+1];
+        if(right_child->num_keys > MIDDLE_INDEX){
+            TreeNode* sucessor = right_child->keys[0];
+            memcpy(&bnode->keys[index], &sucessor, sizeof(TreeNode));
+            btree_delete(right_child, sucessor->name);
+            return;
+        }
 
-        //     // merge entre nodes
-        // }
+        // Caso 2c
+        merge_bnodes(left_child, bnode->keys[index], right_child);
+        remove_from_bnode(bnode, index);
+        btree_delete(left_child, name);
+        return;
     }
+    // Caso 3
+    else {
+        if(bnode->children[index]->num_keys <= MIDDLE_INDEX){
+            // Caso 3a
+            // pegando da esquerda
+            BTreeNode* left_child = bnode->children[index];
+            if(left_child->num_keys > MIDDLE_INDEX){
+                TreeNode* sibling_predecessor = left_child->keys[left_child->num_keys-1];
+                remove_from_bnode_end(left_child, true);
+                return;
+            }
+
+            // pegando da direita
+            BTreeNode* right_child = bnode->children[index+1];
+            if(right_child->num_keys > MIDDLE_INDEX){
+                TreeNode* sibling_sucessor = right_child->keys[0];
+                remove_from_bnode_end(right_child, false);
+                return;
+            }
+
+            // Caso 3b
+            else{
+
+            }
+        }
+
+        btree_delete(bnode->children[index], name);
+    }
+}
+
+void delete_txt_file(BTree* tree, char* name) {
+    printf("deletando arquivo %s\n", name);
+
+    BTreeNode* target_file_node = btree_search(tree->root, name);
+    int index = get_node_index(target_file_node, name);
+
+    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
+        btree_delete(tree->root, name);
+    }
+}
+
+void delete_directory(BTree* tree, char* name) {
+    printf("Deletando diretório %s\n", name);
+
+    BTreeNode* target_directory_node = btree_search(tree->root, name);
+    int index = get_node_index(target_directory_node, name);
+
+    if(target_directory_node != NULL && target_directory_node->keys[index]->type == DIRECTORY_TYPE){
+        btree_delete(tree->root, name);
+    }
+    else printf("Diretório não achado\n");
 }
