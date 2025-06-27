@@ -34,11 +34,25 @@ TreeNode* create_directory(const char* name) {
 }
 
 void delete_txt_file(BTree* tree, const char* name) {
-    printf("Arquivo '%s' deletado (simulado)\n", name);
+    printf("deletando arquivo %s\n", name);
+
+    BTreeNode* target_file_node = btree_search(tree->root, name);
+    int index = get_node_index(target_file_node, name);
+
+    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
+        btree_delete(tree->root, name);
+    }
 }
 
 void delete_directory(BTree* tree, const char* name) {
-    printf("Diretório '%s' deletado (simulado)\n", name);
+    printf("deletando diretório %s\n", name);
+
+    BTreeNode* target_directory_node = btree_search(tree->root, name);
+    int index = get_node_index(target_directory_node, name);
+
+    if(target_directory_node != NULL && target_directory_node->keys[index]->type == DIRECTORY_TYPE){
+        btree_delete(tree->root, name);
+    }
 }
 
 Directory* get_root_directory() {
@@ -79,6 +93,11 @@ int get_node_index(BTreeNode* bnode, char* name){
     return index;
 }
 
+bool node_in_bnode(BTreeNode* bnode, char* name){
+    int index = get_node_index(bnode, name);
+    return (bnode!=NULL && strcmp(bnode->keys[index], name) == 0);
+}
+
 TreeNode* change_directory(Directory* current, char* path) {
     if(strcmp(path, "..") == 0) return current->parent;
 
@@ -98,6 +117,8 @@ void btree_traverse(BTreeNode* node, int level, bool recursive) {
     for(int i=0;i<node->num_keys+1; i++){
         if(!node->leaf) btree_traverse(node->children[i], level+1, recursive);
         if(i != node->num_keys){
+            // pode ser level*2+1 pra visualizar cada btree ou level para 
+            // visualizar só o sistema de pastas no geral
             for(int y=0;y<level*2+1;y++){
                 printf("-");
             }
@@ -240,33 +261,51 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
     }
 }
 
-// void btree_delete(BTree* tree, const char* name) {
-//     printf("Removendo: %s\n", name);
+TreeNode* remove_from_leaf_bnode(BTreeNode* bnode, bool start){
+    int index = start ? 0 : bnode->num_keys-1;
+    TreeNode* removed_node = bnode->keys[index];
+    bnode->keys[index] = NULL;
 
-//     BTreeNode* target_bnode = btree_search(tree->root, name);
-//     int index = get_node_index(target_bnode, name);
+    // trazer para começo
+    for(int i=index; i<bnode->num_keys-1; i++){
+        bnode->keys[i] = bnode->keys[i+1];
+    }
+    bnode->num_keys = bnode->num_keys - 1;
 
-//     if(target_bnode == NULL) printf("Nome não se encontra no diretório\n");
-//     else if(target_bnode->leaf){
-//         // Caso 1
+    return removed_node;
+}
 
-//         // excluindo a célula
-//         free(target_bnode->children[index]);
-//         target_bnode->num_keys = target_bnode->num_keys - 1;
+// https://enos.itcollege.ee/~japoia/algorithms/GT/Introduction_to_algorithms-3rd%20Edition.pdf
+// 520
+void btree_delete(BTreeNode* bnode, char* name) {
+    printf("Removendo: %s\n", name);
 
-//         if(target_bnode->num_keys < MIDDLE_INDEX){
-//             // pegando emprestado da esquerda
-//             if()
+    int index = get_node_index(bnode, name);
+    bool is_current_bnode = node_in_bnode(bnode, name);
+    if(!is_current_bnode && bnode->leaf) printf("Nome não se encontra no diretório\n");
 
-//             // pegando emprestado da direita
-//             if()
+    if(!bnode->leaf){
+        // if(bnode->num_keys <= MIDDLE_INDEX && bnode->parent != NULL){
+        //     // passou pelo node e o número de chaves é pequeno demais
+        // }
+        btree_delete(bnode->children[index], name);
+    }
+    else{
+        if(bnode->num_keys > MIDDLE_INDEX){
+            // Caso 1
+            free(bnode->children[index]);
+            bnode->children[index] = NULL;
+            bnode->num_keys = bnode->num_keys - 1;
+            return;
+        }
+        // else{
+        //     // pegando emprestado da esquerda
+        //     // if()
 
-//             // merge entre nodes
+        //     // pegando emprestado da direita
+        //     // if()
 
-//         }
-//     }
-//     else{
-//         if()
-//         TreeNode*
-//     }
-// }
+        //     // merge entre nodes
+        // }
+    }
+}

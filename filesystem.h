@@ -11,8 +11,8 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define BTREE_ORDER 4
-#define MIDDLE_INDEX (BTREE_ORDER-1)/2
+#define BTREE_ORDER 6
+#define MIDDLE_INDEX ((BTREE_ORDER-1)/2)
 #define RIGHT_NODE_SIZE (BTREE_ORDER%2 == 0 ? MIDDLE_INDEX+1 : MIDDLE_INDEX)
 #define LEFT_NODE_SIZE MIDDLE_INDEX
 
