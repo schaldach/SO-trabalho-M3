@@ -132,11 +132,21 @@ int main(){
             // rm
             case 4:
                 delete_txt_file(current_directory->tree, argument);
+                if(current_directory_bnode->num_keys == 0){
+                    current_directory_bnode = current_directory_bnode->children[0];
+                    free(current_directory_bnode->parent);
+                    current_directory_bnode->parent = NULL;
+                }
             break;
 
             // rmdir
             case 5:
                 delete_directory(current_directory->tree, argument);
+                if(current_directory_bnode->num_keys == 0){
+                    current_directory_bnode = current_directory_bnode->children[0];
+                    free(current_directory_bnode->parent);
+                    current_directory_bnode->parent = NULL;
+                }
             break;
 
             // ls-r (recursive)

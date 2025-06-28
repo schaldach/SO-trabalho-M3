@@ -393,27 +393,22 @@ void btree_delete(BTreeNode* bnode, char* name) {
                 BTreeNode* left_sibling = bnode->children[index-1];
                 merge_bnodes(left_sibling, bnode->keys[index-1], bnode->children[index]);
                 remove_from_bnode(bnode, index-1);
-                if(bnode->num_keys == 0){
-                    free(bnode);
-                    bnode = left_sibling;
-                    bnode->parent = NULL;
-                }
             }
             // usar o sibling da direita
             else{
                 BTreeNode* right_sibling = bnode->children[index+1];
                 merge_bnodes(bnode->children[index], bnode->keys[index], right_sibling);
                 remove_from_bnode(bnode, index);
-                if(bnode->num_keys == 0){
-                    BTreeNode* only_child = bnode->children[index];
-                    free(bnode);
-                    bnode = only_child;
-                    bnode->parent = NULL;
-                }
             }
         }
     }
     btree_delete(bnode->children[index], name);
+    if(bnode->num_keys == 0){
+        BTreeNode* only_child = bnode->children[0];
+        free(bnode);
+        bnode = only_child;
+        bnode->parent = NULL;
+    }
 }
 
 void delete_txt_file(BTree* tree, char* name) {
