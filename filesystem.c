@@ -262,16 +262,16 @@ void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_
 void add_to_bnode_end(BTreeNode* bnode, TreeNode* node, bool start, BTreeNode* child){
     if(start){
         // movendo para frente
-        for(int i=bnode->num_keys;i>0;i--){
-            if(i!=bnode->num_keys) bnode->keys[i] = bnode->keys[i-1];
-            bnode->children[i+1] = bnode->children[i];
+        for(int i=bnode->num_keys+1;i>0;i--){
+            if(i!=bnode->num_keys+1) bnode->keys[i] = bnode->keys[i-1];
+            if(!bnode->leaf) bnode->children[i+1] = bnode->children[i];
         }
         bnode->keys[0] = node;
-        bnode->children[0] = child;
+        if(!bnode->leaf) bnode->children[0] = child;
     }
     else{
         bnode->keys[bnode->num_keys] = node;
-        bnode->children[bnode->num_keys+1] = child;
+        if(!bnode->leaf) bnode->children[bnode->num_keys+1] = child;
     }
     bnode->num_keys++;
 }
