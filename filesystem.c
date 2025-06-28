@@ -243,14 +243,17 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
 }
 
 void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_node){
-    left_node->keys[left_node->num_keys] = middle_node;
+    left_node->keys[left_node->num_keys] = malloc(sizeof(TreeNode));
+    memcpy(left_node->keys[left_node->num_keys], middle_node, sizeof(TreeNode));
     left_node->num_keys++;
+
     int pre_merge_size = left_node->num_keys;
     int merge_size = left_node->num_keys*2-1;
+
     for(int i=left_node->num_keys; i<=merge_size; i++){
         if(!right_node->leaf) left_node->children[i] = right_node->children[i-pre_merge_size];
-        if(i!=left_node->num_keys){
-            left_node->keys[i] = right_node->keys[i-pre_merge_size-1];
+        if(i!=merge_size){
+            left_node->keys[i] = right_node->keys[i-pre_merge_size];
             left_node->num_keys++;
         }
     }
