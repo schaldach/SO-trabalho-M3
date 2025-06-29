@@ -13,7 +13,7 @@ TreeNode* create_txt_file(const char* name, const char* content) {
     File* file = malloc(sizeof(File));
     file->name = strdup(name);
     file->content = strdup(content);
-    file->size = strlen(content);
+    file->size = strlen(file->content);
 
     TreeNode* node = malloc(sizeof(TreeNode));
     node->name = strdup(name);
@@ -403,12 +403,6 @@ void btree_delete(BTreeNode* bnode, char* name) {
         }
     }
     btree_delete(bnode->children[index], name);
-    // if(bnode->num_keys == 0){
-    //     BTreeNode* only_child = bnode->children[0];
-    //     free(bnode);
-    //     bnode = only_child;
-    //     bnode->parent = NULL;
-    // }
 }
 
 void delete_txt_file(BTree* tree, char* name) {
@@ -428,8 +422,13 @@ void delete_directory(BTree* tree, char* name) {
     BTreeNode* target_directory_node = btree_search(tree->root, name);
     int index = get_node_index(target_directory_node, name);
 
-    if(target_directory_node != NULL && target_directory_node->keys[index]->type == DIRECTORY_TYPE){
+    if(target_directory_node == NULL || target_directory_node->keys[index]->type != DIRECTORY_TYPE){
+        printf("Diretório não achado\n");
+        return;
+    }
+
+    if(target_directory_node->keys[index]->data.directory->tree->root->num_keys == 0){
         btree_delete(tree->root, name);
     }
-    else printf("Diretório não achado\n");
+    else printf("Diretório não está vazio\n");
 }

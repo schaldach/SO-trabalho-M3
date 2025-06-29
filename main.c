@@ -22,14 +22,14 @@ int main(){
     TreeNode* current_directory_node = malloc(sizeof(TreeNode));
     current_directory_node->data.directory = root_directory;
     current_directory_node->type = DIRECTORY_TYPE;
-    current_directory_node->name = strdup("");
+    current_directory_node->name = strdup("~");
 
-    char input[100];
+    char input[1024*1024];
     char command[100];
     char argument[100];
     char path[100];
     char* sep = "/";
-    char content[] = "dsdsadasdas";
+    char content[1024*1024] = "";
 
     printf("--------\n");
     printf("ls = listar os arquivos e diretórios na pasta atual\n");
@@ -47,18 +47,18 @@ int main(){
         BTreeNode* current_directory_bnode = current_directory_node->data.directory->tree->root;
 
         TreeNode* dir_temp = current_directory_node;
-        path[0] = '/';
-        path[1] = '\0';
-        while(dir_temp->data.directory->parent != NULL){
+        path[0] = '\0';
+        while(dir_temp != NULL){
             char* dir_name = strdup(dir_temp->name);
             reverse_string(dir_name, strlen(dir_name));
             strcat(path, dir_name);
-            strcat(path, sep);
+            // não colocar sep se é o ultimo diretório
+            if(dir_temp->data.directory->parent != NULL) strcat(path, sep);
             dir_temp = dir_temp->data.directory->parent;
         }
         reverse_string(path, strlen(path));
 
-        printf("%s $ ", path);
+        printf("%s$ ", path);
 
         // lendo input
         fgets(input, 100, stdin);
@@ -97,6 +97,8 @@ int main(){
         if(strcmp(command, "rm") == 0) commandCode = 4;
         if(strcmp(command, "rmdir") == 0) commandCode = 5;
         if(strcmp(command, "ls-r") == 0) commandCode = 6;
+        if(strcmp(command, "cat") == 0) commandCode = 7;
+        if(strcmp(command, "cat>") == 0) commandCode = 8;
 
         switch(commandCode){
             // ls
@@ -132,7 +134,7 @@ int main(){
             // rm
             case 4:
                 delete_txt_file(current_directory->tree, argument);
-                if(current_directory_bnode->num_keys == 0){
+                if(current_directory_bnode->num_keys == 0 && !current_directory_bnode->leaf){
                     current_directory_node->data.directory->tree->root = current_directory_bnode->children[0];
                     free(current_directory_bnode->parent);
                     current_directory_node->data.directory->tree->root->parent = NULL;
@@ -142,7 +144,7 @@ int main(){
             // rmdir
             case 5:
                 delete_directory(current_directory->tree, argument);
-                if(current_directory_bnode->num_keys == 0){
+                if(current_directory_bnode->num_keys == 0 && !current_directory_bnode->leaf){
                     current_directory_node->data.directory->tree->root = current_directory_bnode->children[0];
                     free(current_directory_bnode->parent);
                     current_directory_node->data.directory->tree->root->parent = NULL;
@@ -152,6 +154,27 @@ int main(){
             // ls-r (recursive)
             case 6:
                 list_directory_contents(current_directory, true);
+            break;
+            
+            // cat
+            case 7:
+                list_file_content(current_directory, argument);
+            break;
+
+            // cat>
+            case 8:
+                int initial_position = strlen(command)+1+str(argument)+1;
+                for(int i=initial_position; i<strlen(input); i++){
+                    if(input[i] != ' ' && input[i] != '\n'){
+                        content[i-initial_position] = input[i];
+                    }
+                    else{
+                        content[i-initial_position] = '\0';
+                        break;
+                    }
+
+                }
+                change_file_content(current_directory, argument, content);
             break;
         }
         printf("\n");
