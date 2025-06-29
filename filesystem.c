@@ -403,12 +403,12 @@ void btree_delete(BTreeNode* bnode, char* name) {
         }
     }
     btree_delete(bnode->children[index], name);
-    if(bnode->num_keys == 0){
-        BTreeNode* only_child = bnode->children[0];
-        free(bnode);
-        bnode = only_child;
-        bnode->parent = NULL;
-    }
+    // if(bnode->num_keys == 0){
+    //     BTreeNode* only_child = bnode->children[0];
+    //     free(bnode);
+    //     bnode = only_child;
+    //     bnode->parent = NULL;
+    // }
 }
 
 void delete_txt_file(BTree* tree, char* name) {
