@@ -33,12 +33,12 @@ TreeNode* create_directory(const char* name) {
     return node;
 }
 
-BTreeNode* btree_search(BTreeNode* bnode, const char* name) {
+TreeNode* btree_search(BTreeNode* bnode, const char* name) {
     for(int i=0; i<bnode->num_keys+1; i++){
         if(i!=bnode->num_keys){
             // printf("passou por: %s\n", bnode->keys[i]->name);
             if(strcmp(name, bnode->keys[i]->name) > 0) continue;
-            else if (strcmp(name, bnode->keys[i]->name) == 0) return bnode; 
+            else if (strcmp(name, bnode->keys[i]->name) == 0) return bnode->keys[i]; 
             else if (!bnode->leaf && strcmp(name, bnode->keys[i]->name) < 0) return btree_search(bnode->children[i], name);
         }
         else if(!bnode->leaf) return btree_search(bnode->children[i], name);
@@ -79,11 +79,10 @@ bool node_in_bnode(BTreeNode* bnode, char* name){
 TreeNode* change_directory(Directory* current, char* path) {
     if(strcmp(path, "..") == 0) return current->parent;
 
-    BTreeNode* new_directory_node = btree_search(current->tree->root, path);
-    int index = get_node_index(new_directory_node, path);
+    TreeNode* new_directory_node = btree_search(current->tree->root, path);
 
-    if(new_directory_node != NULL && new_directory_node->keys[index]->type == DIRECTORY_TYPE){
-        return new_directory_node->keys[index];
+    if(new_directory_node != NULL && new_directory_node->type == DIRECTORY_TYPE){
+        return new_directory_node;
     }
     else{
         printf("Directory not found\n");
@@ -423,48 +422,44 @@ void btree_delete(BTreeNode* bnode, char* name) {
 void delete_txt_file(BTree* tree, char* name) {
     // printf("deletando arquivo %s\n", name);
 
-    BTreeNode* target_file_node = btree_search(tree->root, name);
-    int index = get_node_index(target_file_node, name);
+    TreeNode* target_file_node = btree_search(tree->root, name);
 
-    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
+    if(target_file_node != NULL && target_file_node->type == FILE_TYPE){
         btree_delete(tree->root, name);
     }
-    else printf("Arquivo não achado");
+    else printf("Arquivo não achado\n");
 }
 
 void delete_directory(BTree* tree, char* name) {
     // printf("Deletando diretório %s\n", name);
 
-    BTreeNode* target_directory_node = btree_search(tree->root, name);
-    int index = get_node_index(target_directory_node, name);
+    TreeNode* target_directory_node = btree_search(tree->root, name);
 
-    if(target_directory_node == NULL || target_directory_node->keys[index]->type != DIRECTORY_TYPE){
+    if(target_directory_node == NULL || target_directory_node->type != DIRECTORY_TYPE){
         printf("Diretório não achado\n");
         return;
     }
 
-    if(target_directory_node->keys[index]->data.directory->tree->root->num_keys == 0){
+    if(target_directory_node->data.directory->tree->root->num_keys == 0){
         btree_delete(tree->root, name);
     }
     else printf("Diretório não está vazio\n");
 }
 
 void list_file_content(Directory* dir, char* file_name){
-    BTreeNode* target_file_node = btree_search(dir->tree->root, file_name);
-    int index = get_node_index(target_file_node, file_name);
+    TreeNode* target_file_node = btree_search(dir->tree->root, file_name);
 
-    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
-        printf("%s\n", target_file_node->keys[index]->data.file->content);
+    if(target_file_node != NULL && target_file_node->type == FILE_TYPE){
+        printf("%s\n", target_file_node->data.file->content);
     }
     else printf("Arquivo não achado\n");
 }
 
 void change_file_content(Directory* dir, char* file_name, char* file_content){
-    BTreeNode* target_file_node = btree_search(dir->tree->root, file_name);
-    int index = get_node_index(target_file_node, file_name);
+    TreeNode* target_file_node = btree_search(dir->tree->root, file_name);
 
-    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
-        target_file_node->keys[index]->data.file->content = strdup(file_content);
+    if(target_file_node != NULL && target_file_node->type == FILE_TYPE){
+        target_file_node->data.file->content = strdup(file_content);
     }
     else printf("Arquivo não achado\n");
 }

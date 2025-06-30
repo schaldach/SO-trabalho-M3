@@ -42,6 +42,7 @@ int main(){
     printf("rmdir {diretório} = excluir diretório vazio\n");
     printf("cat {arquivo} = visualizar conteúdo do arquivo\n");
     printf("cat> {arquivo} {conteúdo} = alterar conteúdo do arquivo\n");
+    printf("fs.img = gerar imagem textual da estrutura de arquivos, a partir do diretório atual, no arquivo 'fs.img'\n");
     printf("--------\n\n");
 
 
