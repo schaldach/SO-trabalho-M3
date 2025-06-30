@@ -190,7 +190,7 @@ int main(){
 
             // fs.img
             case 10:
-                FILE* fptr = fopen(FSIMG_FILE, "r");
+                FILE* fptr = fopen(FSIMG_FILE, "w");
                 btree_traverse_image(current_directory->tree->root, 0, fptr);
                 fclose(fptr);
             break;
