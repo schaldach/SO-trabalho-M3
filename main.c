@@ -104,6 +104,7 @@ int main(){
         if(strcmp(command, "ls-b") == 0) commandCode = 7;
         if(strcmp(command, "cat") == 0) commandCode = 8;
         if(strcmp(command, "cat>") == 0) commandCode = 9;
+        if(strcmp(command, "fs.img") == 0) commandCode = 10;
 
         switch(commandCode){
             // ls
@@ -186,7 +187,14 @@ int main(){
                 }
                 change_file_content(current_directory, argument, content);
             break;
-        }
+
+            // fs.img
+            case 10:
+                FILE* fptr = fopen(FSIMG_FILE, "r");
+                btree_traverse_image(current_directory->tree->root, 0, fptr);
+                fclose(fptr);
+            break;
+        }   
         printf("\n");
     }
 }

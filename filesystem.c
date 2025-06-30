@@ -54,13 +54,11 @@ int get_node_index(BTreeNode* bnode, char* name){
     // se o nome for "menor" que uma key, atualizar o index
     for(int i=0; i<bnode->num_keys; i++){
         TreeNode* key = bnode->keys[i];
-
         if(strcmp(name, key->name) <= 0){
             index = i;
             break;
         }
     }
-
     // printf("index in get_node_index: %d\n", index);
     return index;
 }
@@ -90,6 +88,24 @@ TreeNode* change_directory(Directory* current, char* path) {
     else{
         printf("Directory not found\n");
         return NULL;
+    }
+}
+
+void btree_traverse_image(BTreeNode* node, int level, FILE *fptr) {
+    for(int i=0;i<node->num_keys+1; i++){
+        if(!node->leaf) btree_traverse_image(node->children[i], level, fptr);
+        if(i != node->num_keys){
+            for(int y=0;y<level*2+1;y++){
+                fprintf(fptr, "-");
+            }
+            fprintf(fptr, "%s", node->keys[i]->name);
+            if(node->keys[i]->type == DIRECTORY_TYPE) fprintf(fptr, " <DIR>");
+            fprintf(fptr, "\n");
+
+            if(node->keys[i]->type == DIRECTORY_TYPE){
+                btree_traverse_image(node->keys[i]->data.directory->tree->root, level+1, fptr);
+            }
+        }
     }
 }
 
@@ -234,7 +250,6 @@ void btree_insert(BTreeNode* bnode, TreeNode* node) {
 
         if(bnode->num_keys >= BTREE_ORDER){
             split_btree_node(bnode, overflow);
-            bnode->num_keys = MIDDLE_INDEX;
         }
     }
     else{
