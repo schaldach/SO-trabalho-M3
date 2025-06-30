@@ -93,11 +93,11 @@ TreeNode* change_directory(Directory* current, char* path) {
     }
 }
 
-void btree_traverse(BTreeNode* node, int level, bool recursive) {
+void btree_traverse(BTreeNode* node, int level, bool recursive, bool btree) {
     for(int i=0;i<node->num_keys+1; i++){
         // pode ser level+1 pra visualizar cada btree ou level para 
         // visualizar só o sistema de pastas no geral
-        if(!node->leaf) btree_traverse(node->children[i], level+1, recursive);
+        if(!node->leaf) btree_traverse(node->children[i], btree?level+1:level, recursive, btree);
         if(i != node->num_keys){
             for(int y=0;y<level*2+1;y++){
                 printf("-");
@@ -107,14 +107,14 @@ void btree_traverse(BTreeNode* node, int level, bool recursive) {
             printf("\n");
 
             if(node->keys[i]->type == DIRECTORY_TYPE && recursive){
-                btree_traverse(node->keys[i]->data.directory->tree->root, level+1, recursive);
+                btree_traverse(node->keys[i]->data.directory->tree->root, level+1, recursive, btree);
             }
         }
     }
 }
 
-void list_directory_contents(Directory* dir, bool recursive) {
-    btree_traverse(dir->tree->root, 0, recursive);
+void list_directory_contents(Directory* dir, bool recursive, bool btree) {
+    btree_traverse(dir->tree->root, 0, recursive, btree);
 }
 
 BTreeNode* create_bnode(TreeNode** keys, bool leaf, BTreeNode** children, BTreeNode* parent){
@@ -311,12 +311,12 @@ void remove_from_bnode(BTreeNode* bnode, int index){
 // https://enos.itcollege.ee/~japoia/algorithms/GT/Introduction_to_algorithms-3rd%20Edition.pdf
 // 520
 void btree_delete(BTreeNode* bnode, char* name) {
-    printf("Removendo: %s\n", name);
+    // printf("Removendo: %s\n", name);
 
     int index = get_node_index(bnode, name);
     bool is_current_bnode = node_in_bnode(bnode, name);
 
-    printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
+    // printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
     if(!is_current_bnode && bnode->leaf){
         printf("Nome não se encontra na árvore\n");
         return;
@@ -406,7 +406,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
 }
 
 void delete_txt_file(BTree* tree, char* name) {
-    printf("deletando arquivo %s\n", name);
+    // printf("deletando arquivo %s\n", name);
 
     BTreeNode* target_file_node = btree_search(tree->root, name);
     int index = get_node_index(target_file_node, name);
@@ -414,10 +414,11 @@ void delete_txt_file(BTree* tree, char* name) {
     if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
         btree_delete(tree->root, name);
     }
+    else printf("Arquivo não achado");
 }
 
 void delete_directory(BTree* tree, char* name) {
-    printf("Deletando diretório %s\n", name);
+    // printf("Deletando diretório %s\n", name);
 
     BTreeNode* target_directory_node = btree_search(tree->root, name);
     int index = get_node_index(target_directory_node, name);

@@ -29,15 +29,19 @@ int main(){
     char argument[100];
     char path[100];
     char* sep = "/";
-    char content[1024*1024] = "idbadasbio";
+    char content[1024*1024] = "Este é o conteúdo de um arquivo padrão.";
 
     printf("--------\n");
     printf("ls = listar os arquivos e diretórios na pasta atual\n");
-    printf("cd {nome} = navegar para diretório\n");
-    printf("touch {nome} = criar arquivo\n");
-    printf("mkdir {npme} = criar diretório\n");
-    printf("rmdir {nome} = excluir diretório vazio\n");
-    printf("rm {nome} = excluir arquivo\n");
+    printf("ls-r = listar os arquivos e diretórios na pasta atual e todos os subdiretórios\n");
+    printf("ls-b = listar os arquivos e diretórios na pasta atual no formato da B-Tree do diretório\n");
+    printf("cd {diretório} = navegar para diretório\n");
+    printf("touch {arquivo} = criar arquivo\n");
+    printf("mkdir {diretório} = criar diretório\n");
+    printf("rm {arquivo} = excluir arquivo\n");
+    printf("rmdir {diretório} = excluir diretório vazio\n");
+    printf("cat {arquivo} = visualizar conteúdo do arquivo\n");
+    printf("cat> {arquivo} {conteúdo} = alterar conteúdo do arquivo\n");
     printf("--------\n\n");
 
 
@@ -97,13 +101,14 @@ int main(){
         if(strcmp(command, "rm") == 0) commandCode = 4;
         if(strcmp(command, "rmdir") == 0) commandCode = 5;
         if(strcmp(command, "ls-r") == 0) commandCode = 6;
-        if(strcmp(command, "cat") == 0) commandCode = 7;
-        if(strcmp(command, "cat>") == 0) commandCode = 8;
+        if(strcmp(command, "ls-b") == 0) commandCode = 7;
+        if(strcmp(command, "cat") == 0) commandCode = 8;
+        if(strcmp(command, "cat>") == 0) commandCode = 9;
 
         switch(commandCode){
             // ls
             case 0:
-                list_directory_contents(current_directory, false);
+                list_directory_contents(current_directory, false, false);
             break;
 
             // cd
@@ -153,16 +158,21 @@ int main(){
 
             // ls-r (recursive)
             case 6:
-                list_directory_contents(current_directory, true);
+                list_directory_contents(current_directory, true, false);
+            break;
+
+            // ls-b (b-tree)
+            case 7:
+                list_directory_contents(current_directory, false, true);
             break;
             
             // cat
-            case 7:
+            case 8:
                 list_file_content(current_directory, argument);
             break;
 
             // cat>
-            case 8:
+            case 9:
                 int initial_position = strlen(command)+1+strlen(argument)+1;
                 for(int i=initial_position; i<strlen(input); i++){
                     if(input[i] != ' ' && input[i] != '\n'){
