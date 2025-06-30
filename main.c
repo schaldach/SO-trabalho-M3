@@ -29,7 +29,7 @@ int main(){
     char argument[100];
     char path[100];
     char* sep = "/";
-    char content[1024*1024] = "";
+    char content[1024*1024] = "idbadasbio";
 
     printf("--------\n");
     printf("ls = listar os arquivos e diretórios na pasta atual\n");
@@ -68,7 +68,7 @@ int main(){
         bool spaceFound = false;
         for(int i=0; i<strlen(input); i++){
             if(!spaceFound){
-                if(input[i] != ' ' && input[i] != '\n'){
+                if(input[i] != ' ' && input[i] != '\n'&& input[i] != '\0'){
                     command[i] = input[i];
                 }
                 else{
@@ -78,7 +78,7 @@ int main(){
                 }
             }
             else{
-                if(input[i] != ' ' && input[i] != '\n'){
+                if(input[i] != ' ' && input[i] != '\n' && input[i] != '\0'){
                     argument[i-commandLength-1] = input[i];
                 }
                 else{
@@ -163,7 +163,7 @@ int main(){
 
             // cat>
             case 8:
-                int initial_position = strlen(command)+1+str(argument)+1;
+                int initial_position = strlen(command)+1+strlen(argument)+1;
                 for(int i=initial_position; i<strlen(input); i++){
                     if(input[i] != ' ' && input[i] != '\n'){
                         content[i-initial_position] = input[i];

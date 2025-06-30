@@ -36,7 +36,7 @@ TreeNode* create_directory(const char* name) {
 BTreeNode* btree_search(BTreeNode* bnode, const char* name) {
     for(int i=0; i<bnode->num_keys+1; i++){
         if(i!=bnode->num_keys){
-            printf("passou por: %s\n", bnode->keys[i]->name);
+            // printf("passou por: %s\n", bnode->keys[i]->name);
             if(strcmp(name, bnode->keys[i]->name) > 0) continue;
             else if (strcmp(name, bnode->keys[i]->name) == 0) return bnode; 
             else if (!bnode->leaf && strcmp(name, bnode->keys[i]->name) < 0) return btree_search(bnode->children[i], name);
@@ -431,4 +431,24 @@ void delete_directory(BTree* tree, char* name) {
         btree_delete(tree->root, name);
     }
     else printf("Diretório não está vazio\n");
+}
+
+void list_file_content(Directory* dir, char* file_name){
+    BTreeNode* target_file_node = btree_search(dir->tree->root, file_name);
+    int index = get_node_index(target_file_node, file_name);
+
+    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
+        printf("%s\n", target_file_node->keys[index]->data.file->content);
+    }
+    else printf("Arquivo não achado\n");
+}
+
+void change_file_content(Directory* dir, char* file_name, char* file_content){
+    BTreeNode* target_file_node = btree_search(dir->tree->root, file_name);
+    int index = get_node_index(target_file_node, file_name);
+
+    if(target_file_node != NULL && target_file_node->keys[index]->type == FILE_TYPE){
+        target_file_node->keys[index]->data.file->content = strdup(file_content);
+    }
+    else printf("Arquivo não achado\n");
 }
