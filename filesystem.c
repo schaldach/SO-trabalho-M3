@@ -262,12 +262,12 @@ void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_
 
     int pre_merge_size = left_node->num_keys;
     int merge_size = left_node->num_keys*2-1;
-    printf("pre_merge: %d, merge: %d\n", pre_merge_size, merge_size);
+    // printf("pre_merge: %d, merge: %d\n", pre_merge_size, merge_size);
 
     for(int i=left_node->num_keys; i<=merge_size; i++){
         if(!right_node->leaf) left_node->children[i] = right_node->children[i-pre_merge_size];
         if(i!=merge_size){
-            printf("inserindo %s em %d de %d\n", right_node->keys[i-pre_merge_size]->name, i, i-pre_merge_size);
+            // printf("inserindo %s em %d de %d\n", right_node->keys[i-pre_merge_size]->name, i, i-pre_merge_size);
             left_node->keys[i] = right_node->keys[i-pre_merge_size];
             left_node->num_keys++;
         }
@@ -305,7 +305,7 @@ void remove_from_bnode_end(BTreeNode* bnode, bool start){
 
 void remove_from_bnode(BTreeNode* bnode, int index){
     // apagando key e child 
-    printf("remove from bnode: %d\n", index);
+    // printf("remove from bnode: %d\n", index);
     free(bnode->keys[index]);
     bnode->keys[index] = NULL;
 
@@ -344,9 +344,9 @@ void btree_delete(BTreeNode* bnode, char* name) {
     int index = get_node_index(bnode, name);
     bool is_current_bnode = node_in_bnode(bnode, name);
 
-    printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
+    // printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
     if(!is_current_bnode && bnode->leaf){
-        printf("Nome não se encontra na árvore\n");
+        printf("Nome não se encontra no diretório\n");
         return;
     }
 

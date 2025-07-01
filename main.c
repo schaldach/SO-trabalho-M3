@@ -176,7 +176,7 @@ int main(){
             case 9:
                 int initial_position = strlen(command)+1+strlen(argument)+1;
                 for(int i=initial_position; i<strlen(input); i++){
-                    if(input[i] != ' ' && input[i] != '\n'){
+                    if(input[i] != '\0' && input[i] != '\n'){
                         content[i-initial_position] = input[i];
                     }
                     else{
@@ -193,6 +193,10 @@ int main(){
                 FILE* fptr = fopen(FSIMG_FILE, "w");
                 btree_traverse_image(current_directory->tree->root, 0, fptr);
                 fclose(fptr);
+            break;
+
+            default:
+                printf("Comando não reconhecido\n");
             break;
         }   
         printf("\n");
