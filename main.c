@@ -120,20 +120,30 @@ int main(){
 
             // touch
             case 2:
-                TreeNode* new_file = create_txt_file(argument, content);
-                btree_insert(current_directory_bnode, new_file);
-                if(current_directory_bnode->parent != NULL){
-                    current_directory_node->data.directory->tree->root = current_directory_node->data.directory->tree->root->parent;
+                if(btree_search(current_directory_bnode, argument) == NULL){
+                    TreeNode* new_file = create_txt_file(argument, content);
+                    btree_insert(current_directory_bnode, new_file);
+                    if(current_directory_bnode->parent != NULL){
+                        current_directory_node->data.directory->tree->root = current_directory_node->data.directory->tree->root->parent;
+                    }
+                }
+                else{
+                    printf("O nome já existe\n");
                 }
             break;
 
             // mkdir
             case 3:
-                TreeNode* new_dir = create_directory(argument);
-                new_dir->data.directory->parent = current_directory_node;
-                btree_insert(current_directory_bnode, new_dir);
-                if(current_directory_bnode->parent != NULL){
-                    current_directory_node->data.directory->tree->root = current_directory_node->data.directory->tree->root->parent;
+                if(btree_search(current_directory_bnode, argument) == NULL){
+                    TreeNode* new_dir = create_directory(argument);
+                    new_dir->data.directory->parent = current_directory_node;
+                    btree_insert(current_directory_bnode, new_dir);
+                    if(current_directory_bnode->parent != NULL){
+                        current_directory_node->data.directory->tree->root = current_directory_node->data.directory->tree->root->parent;
+                    }
+                }
+                else{
+                    printf("O nome já existe\n");
                 }
             break;
 
