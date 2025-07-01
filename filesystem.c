@@ -262,10 +262,12 @@ void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_
 
     int pre_merge_size = left_node->num_keys;
     int merge_size = left_node->num_keys*2-1;
+    printf("pre_merge: %d, merge: %d\n", pre_merge_size, merge_size);
 
     for(int i=left_node->num_keys; i<=merge_size; i++){
         if(!right_node->leaf) left_node->children[i] = right_node->children[i-pre_merge_size];
         if(i!=merge_size){
+            printf("inserindo %s em %d de %d\n", right_node->keys[i-pre_merge_size]->name, i, i-pre_merge_size);
             left_node->keys[i] = right_node->keys[i-pre_merge_size];
             left_node->num_keys++;
         }
@@ -303,6 +305,7 @@ void remove_from_bnode_end(BTreeNode* bnode, bool start){
 
 void remove_from_bnode(BTreeNode* bnode, int index){
     // apagando key e child 
+    printf("remove from bnode: %d\n", index);
     free(bnode->keys[index]);
     bnode->keys[index] = NULL;
 
@@ -329,7 +332,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
     int index = get_node_index(bnode, name);
     bool is_current_bnode = node_in_bnode(bnode, name);
 
-    // printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
+    printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
     if(!is_current_bnode && bnode->leaf){
         printf("Nome não se encontra na árvore\n");
         return;
@@ -364,11 +367,6 @@ void btree_delete(BTreeNode* bnode, char* name) {
         merge_bnodes(left_child, bnode->keys[index], right_child);
         remove_from_bnode(bnode, index);
         btree_delete(left_child, name);
-        if(bnode->num_keys == 0){
-            free(bnode);
-            bnode = left_child;
-            bnode->parent = NULL;
-        }
         return;
     }
     // Caso 3
@@ -377,6 +375,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
         // Caso 3a
         // pegando da esquerda
         if(index>0 && bnode->children[index-1]->num_keys > MIDDLE_INDEX){
+            printf("3a\n");
             BTreeNode* left_sibling = bnode->children[index-1];
 
             TreeNode* sibling_predecessor = left_sibling->keys[left_sibling->num_keys-1];
@@ -389,6 +388,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
 
         // pegando da direita
         else if(index<bnode->num_keys && bnode->children[index+1]->num_keys > MIDDLE_INDEX){
+            printf("3a\n");
             BTreeNode* right_sibling = bnode->children[index+1];
 
             TreeNode* sibling_sucessor = right_sibling->keys[0];
@@ -401,11 +401,14 @@ void btree_delete(BTreeNode* bnode, char* name) {
 
         // Caso 3b
         else{
+            printf("3b\n");
             // usar o sibling da esquerda
             if(index>0){
                 BTreeNode* left_sibling = bnode->children[index-1];
                 merge_bnodes(left_sibling, bnode->keys[index-1], bnode->children[index]);
                 remove_from_bnode(bnode, index-1);
+                
+                index = index - 1; // para que a chamada recursiva seja sobre o left_sibling
             }
             // usar o sibling da direita
             else{
@@ -415,6 +418,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
             }
         }
     }
+    printf("3\n");
     btree_delete(bnode->children[index], name);
 }
 
