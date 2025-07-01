@@ -142,7 +142,7 @@ int main(){
                 delete_txt_file(current_directory->tree, argument);
                 if(current_directory_bnode->num_keys == 0 && !current_directory_bnode->leaf){
                     current_directory_node->data.directory->tree->root = current_directory_bnode->children[0];
-                    free(current_directory_bnode->parent);
+                    free(current_directory_node->data.directory->tree->root->parent);
                     current_directory_node->data.directory->tree->root->parent = NULL;
                 }
             break;
@@ -152,7 +152,7 @@ int main(){
                 delete_directory(current_directory->tree, argument);
                 if(current_directory_bnode->num_keys == 0 && !current_directory_bnode->leaf){
                     current_directory_node->data.directory->tree->root = current_directory_bnode->children[0];
-                    free(current_directory_bnode->parent);
+                    free(current_directory_node->data.directory->tree->root->parent);
                     current_directory_node->data.directory->tree->root->parent = NULL;
                 }
             break;

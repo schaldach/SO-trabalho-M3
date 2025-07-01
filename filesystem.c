@@ -262,12 +262,12 @@ void merge_bnodes(BTreeNode* left_node, TreeNode* middle_node, BTreeNode* right_
 
     int pre_merge_size = left_node->num_keys;
     int merge_size = left_node->num_keys*2-1;
-    // printf("pre_merge: %d, merge: %d\n", pre_merge_size, merge_size);
+    printf("pre_merge: %d, merge: %d\n", pre_merge_size, merge_size);
 
     for(int i=left_node->num_keys; i<=merge_size; i++){
         if(!right_node->leaf) left_node->children[i] = right_node->children[i-pre_merge_size];
         if(i!=merge_size){
-            // printf("inserindo %s em %d de %d\n", right_node->keys[i-pre_merge_size]->name, i, i-pre_merge_size);
+            printf("inserindo %s em %d de %d\n", right_node->keys[i-pre_merge_size]->name, i, i-pre_merge_size);
             left_node->keys[i] = right_node->keys[i-pre_merge_size];
             left_node->num_keys++;
         }
@@ -305,7 +305,7 @@ void remove_from_bnode_end(BTreeNode* bnode, bool start){
 
 void remove_from_bnode(BTreeNode* bnode, int index){
     // apagando key e child 
-    // printf("remove from bnode: %d\n", index);
+    printf("remove from bnode: %d\n", index);
     free(bnode->keys[index]);
     bnode->keys[index] = NULL;
 
@@ -324,6 +324,18 @@ void remove_from_bnode(BTreeNode* bnode, int index){
     bnode->num_keys = bnode->num_keys-1;
 }
 
+TreeNode* find_sucessor(BTreeNode* bnode){
+    if(bnode == NULL) return NULL;
+    if(bnode->leaf) return bnode->keys[0];
+    else return find_sucessor(bnode->children[0]);
+}
+
+TreeNode* find_predecessor(BTreeNode* bnode){
+    if(bnode == NULL) return NULL;
+    if(bnode->leaf) return bnode->keys[bnode->num_keys-1];
+    else return find_predecessor(bnode->children[bnode->num_keys]);
+}
+
 // https://enos.itcollege.ee/~japoia/algorithms/GT/Introduction_to_algorithms-3rd%20Edition.pdf
 // 520
 void btree_delete(BTreeNode* bnode, char* name) {
@@ -332,7 +344,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
     int index = get_node_index(bnode, name);
     bool is_current_bnode = node_in_bnode(bnode, name);
 
-    // printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
+    printf("index in bnode: %d, is in bnode:%d\n", index, is_current_bnode);
     if(!is_current_bnode && bnode->leaf){
         printf("Nome não se encontra na árvore\n");
         return;
@@ -348,7 +360,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
         // Caso 2a
         BTreeNode* left_child = bnode->children[index];
         if(left_child->num_keys > MIDDLE_INDEX){
-            TreeNode* predecessor = left_child->keys[left_child->num_keys-1];
+            TreeNode* predecessor = find_predecessor(left_child);
             memcpy(bnode->keys[index], predecessor, sizeof(TreeNode));
             btree_delete(left_child, predecessor->name);
             return;
@@ -357,7 +369,7 @@ void btree_delete(BTreeNode* bnode, char* name) {
         // Caso 2b
         BTreeNode* right_child = bnode->children[index+1];
         if(right_child->num_keys > MIDDLE_INDEX){
-            TreeNode* sucessor = right_child->keys[0];
+            TreeNode* sucessor = find_sucessor(right_child);
             memcpy(bnode->keys[index], sucessor, sizeof(TreeNode));
             btree_delete(right_child, sucessor->name);
             return;
@@ -377,11 +389,12 @@ void btree_delete(BTreeNode* bnode, char* name) {
         if(index>0 && bnode->children[index-1]->num_keys > MIDDLE_INDEX){
             BTreeNode* left_sibling = bnode->children[index-1];
 
-            TreeNode* sibling_predecessor = left_sibling->keys[left_sibling->num_keys-1];
-            BTreeNode* sibling_predecessor_child = left_sibling->children[left_sibling->num_keys];
+            TreeNode* sibling_last_key = left_sibling->keys[left_sibling->num_keys-1];
+            BTreeNode* sibling_last_key_child_pointer = left_sibling->children[left_sibling->num_keys];
 
-            add_to_bnode_end(target_child, bnode->keys[index-1], true, sibling_predecessor_child);
-            bnode->keys[index-1] = sibling_predecessor;
+            add_to_bnode_end(target_child, bnode->keys[index-1], true, sibling_last_key_child_pointer);
+            sibling_last_key_child_pointer->parent = target_child;
+            bnode->keys[index-1] = sibling_last_key;
             remove_from_bnode_end(left_sibling, false);
         }
 
@@ -389,11 +402,12 @@ void btree_delete(BTreeNode* bnode, char* name) {
         else if(index<bnode->num_keys && bnode->children[index+1]->num_keys > MIDDLE_INDEX){
             BTreeNode* right_sibling = bnode->children[index+1];
 
-            TreeNode* sibling_sucessor = right_sibling->keys[0];
-            BTreeNode* sibling_sucessor_child = right_sibling->children[0];
+            TreeNode* sibling_first_key = right_sibling->keys[0];
+            BTreeNode* sibling_first_key_child_pointer = right_sibling->children[0];
 
-            add_to_bnode_end(target_child, bnode->keys[index], false, sibling_sucessor_child);
-            bnode->keys[index] = sibling_sucessor;
+            add_to_bnode_end(target_child, bnode->keys[index], false, sibling_first_key_child_pointer);
+            sibling_first_key_child_pointer->parent = target_child;
+            bnode->keys[index] = sibling_first_key;
             remove_from_bnode_end(right_sibling, true);
         }
 
