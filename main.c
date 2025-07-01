@@ -45,7 +45,6 @@ int main(){
     printf("fs.img = gerar imagem textual da estrutura de arquivos, a partir do diretório atual, no arquivo 'fs.img'\n");
     printf("--------\n\n");
 
-
     while(true){
         // definindo variáveis para ficar menos verboso
         Directory* current_directory = current_directory_node->data.directory;

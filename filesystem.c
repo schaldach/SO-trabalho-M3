@@ -210,8 +210,8 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
     if(overflow->valid){
         right_keys[RIGHT_NODE_SIZE-1] = overflow->key;
         if(!bnode->leaf) right_children[RIGHT_NODE_SIZE] = overflow->child;
+        free(overflow);
     }
-    free(overflow);
     bnode->num_keys = LEFT_NODE_SIZE;
 
     // definir nodo parente
@@ -235,7 +235,6 @@ void split_btree_node(BTreeNode* bnode, NodeOverflow* overflow){
 
     if(parent->num_keys >= BTREE_ORDER){
         split_btree_node(parent, parent_overflow);
-        free(parent_overflow);
     }
 }
 
